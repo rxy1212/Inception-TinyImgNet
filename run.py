@@ -76,7 +76,7 @@ def predict(net, name, loader):
 
 
 def main(flag=True):
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     torch.cuda.is_available()
 
     train_loader = data.DataLoader(TIN200Data('/data1'), 256, True, num_workers=4)
