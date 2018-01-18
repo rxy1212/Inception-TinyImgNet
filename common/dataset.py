@@ -1,7 +1,7 @@
 '''
 @file: dataset.py
 @version: v1.0
-@date: 2018-01-06
+@date: 2018-01-18
 @author: ruanxiaoyi
 @brief: Pytorch dataset for Tiny-ImageNet-200
 @remark: {when} {email} {do what}

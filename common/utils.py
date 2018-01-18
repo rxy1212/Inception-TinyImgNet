@@ -1,7 +1,7 @@
 '''
 @file: utils.py
 @version: v1.0
-@date: 2018-01-07
+@date: 2018-01-18
 @author: ruanxiaoyi
 @brief: Common utils
 @remark: {when} {email} {do what}
