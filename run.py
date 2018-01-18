@@ -30,9 +30,8 @@ def train(net, loss_fn, optimizer, num_epochs, epoch, loader=None):
         x_train = Variable(x.cuda())
         y_train = Variable(y.cuda())
 
-        scores, scores0, scores1 = net(x_train)
-        scores_all = scores*0.7 + scores0*0.2 + scores1*0.1
-        loss = loss_fn(scores_all, y_train)
+        scores = net(x_train)
+        loss = loss_fn(scores, y_train)
 
         loss.backward()
         optimizer.step()

@@ -12,7 +12,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 class InceptionV1(nn.Module):
-    def __init__(self, num_classes=200, sub_out=True):
+    def __init__(self, num_classes=200, sub_out=False):
         super(InceptionV1, self).__init__()
         self.sub_out = sub_out
         self.bottom_layer = nn.Sequential(
@@ -72,9 +72,8 @@ class InceptionV1(nn.Module):
 
 
 class Inception(nn.Module):
-    def __init__(self, in_channels, convL11_out, conv33_out, conv55_out, convR11_out, sub_out=0):
+    def __init__(self, in_channels, convL11_out, conv33_out, conv55_out, convR11_out):
         super(Inception, self).__init__()
-        self.sub_out = sub_out
         self.convL11 = nn.Conv2d(in_channels, convL11_out, 1)
         self.conv33 = nn.Sequential(
             nn.Conv2d(in_channels, in_channels // 2, 1),
