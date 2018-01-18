@@ -14,8 +14,8 @@ class InceptionV1(nn.Module):
     def __init__(self):
         super(InceptionV1, self).__init__()
         self.bottom_layer = nn.Sequential(
-            nn.Conv2d(3, 256, 7, padding=3),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(3, 128, 7, padding=3),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(3, 1, 1),
             nn.Conv2d(128, 256, 1),
@@ -25,9 +25,9 @@ class InceptionV1(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, 2)
         )
-        self.inception1 = Inception(128, 128, 128, 128, 128)
+        self.inception1 = Inception(256, 128, 128, 128, 128)
         self.inception2 = Inception(512, 128, 128, 128, 128)
-        self.inception3 = Inception(256, 160, 160, 160, 160)
+        self.inception3 = Inception(512, 160, 160, 160, 160)
         self.inception4 = Inception(640, 64, 256, 256, 64, )
 
     def forward(self, x):
@@ -81,9 +81,42 @@ class Inception(nn.Module):
         x_55 = self.conv55(x)
         x_R11 = self.convR11(x)
         outputs = (x_L11, x_33, x_55, x_R11)
-        if not self.sub_out:
-            sub_out = self.sub_classifier_1(x)
-            sub_out = sub_out.view(sub_out.size(0), -1)
-            sub_out = self.sub_classifier_2(sub_out)
-            return torch.cat(outputs, 1), sub_out
         return torch.cat(outputs, 1)
+
+
+class InceptionAux(nn.Module):
+    def __init__(self, in_channels, num_classes):
+        super(InceptionAux, self).__init__()
+        self.pool = nn.AvgPool2d(5, 3, 2)
+        self.conv0 = BasicConv2d(in_channels, 128, kernel_size=1)
+        self.conv1 = BasicConv2d(128, 640, kernel_size=6)
+        self.conv1.stddev = 0.01
+        self.fc = nn.Linear(640, num_classes)
+        self.fc.stddev = 0.001
+
+    def forward(self, x):
+        # 16 x 16 x 640
+        x = self.pool(x)
+        # 6 x 6 x 640
+        x = self.conv0(x)
+        # 6 x 6 x 128
+        x = self.conv1(x)
+        # 1 x 1 x 640
+        x = x.view(x.size(0), -1)
+        # 640
+        x = self.fc(x)
+        # 200
+        return x
+
+class BasicConv2d(nn.Module):
+
+    def __init__(self, in_channels, out_channels, kernel_size, ** kwargs):
+        super(BasicConv2d, self).__init__()
+        self.step = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs),
+            nn.BatchNorm2d(out_channels, eps=0.001),
+            nn.ReLU(True)
+        )
+
+    def forward(self, x):
+        return self.step(x)

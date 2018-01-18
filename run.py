@@ -15,53 +15,36 @@ import torch.optim as optim
 import torch.utils.data as data
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
-from common.net import VGG
+from common.net import InceptionV1
 from common.dataset import TIN200Data
 from common.utils import *
 
 
-def train(net, loss_fn, optimizer, scheduler, num_epochs=1, loader=None, val_loader=None):
+def train(net, loss_fn, optimizer, num_epochs, epoch, loader=None):
+    print(fore.LIGHT_BLUE + f'Starting epoch {epoch} / {num_epochs}' + style.RESET)
     num_correct = 0
     num_samples = 0
-    best_acc = 0
-    for epoch in range(num_epochs):
-        print(fore.LIGHT_BLUE +
-              f'Starting epoch {epoch + 1} / {num_epochs}' + style.RESET)
-        net.train()
-        for t, (x, y) in enumerate(loader):
-            optimizer.zero_grad()
-            x_train = Variable(x.cuda())
-            y_train = Variable(y.cuda())
+    net.train()
+    for t, (x, y) in enumerate(loader):
+        optimizer.zero_grad()
+        x_train = Variable(x.cuda())
+        y_train = Variable(y.cuda())
 
-            scores = net(x_train)
-            loss = loss_fn(scores, y_train)
+        scores, scores0, scores1 = net(x_train)
+        scores_all = scores*0.7 + scores0*0.2 + scores1*0.1
+        loss = loss_fn(scores_all, y_train)
 
-            loss.backward()
-            optimizer.step()
-            # reference https://discuss.pytorch.org/t/argmax-with-pytorch/1528
-            _, preds = scores.data.cpu().max(1)
+        loss.backward()
+        optimizer.step()
+        # reference https://discuss.pytorch.org/t/argmax-with-pytorch/1528
+        _, preds = scores.data.cpu().max(1)
 
-            num_correct += (preds == y).sum()
-            num_samples += preds.size(0)
-            acc = 100.0 * float(num_correct) / num_samples
-            if (t + 1) % 50 == 0:
-                print(
-                    f't = {t + 1}, loss = {loss.data[0]:.4f}, acc = {acc:.2f}%')
-
-        acc = check_accuracy(net, val_loader)
-        scheduler.step(acc, epoch=epoch + 1)
-        print(f'last best_acc:{best_acc:.2f}%')
-        if acc > best_acc:
-            best_acc = acc
-            print(fore.LIGHT_BLUE +
-                  f'Got current best_acc:{best_acc:.2f}%, Saving...' + style.RESET)
-            save(net, 'vgg16')
-        current_lr = optimizer.param_groups[0]['lr']
-        print(f'current lr:{current_lr}')
-        # adjust_learning_rate(optimizer, decay_rate=0.9)
-    print('-------------------------------')
-    print(f'{best_acc:.2f}%')
-    print('-------------------------------')
+        num_correct += (preds == y).sum()
+        num_samples += preds.size(0)
+        acc = 100.0 * float(num_correct) / num_samples
+        if (t + 1) % 50 == 0:
+            print(
+                f't = {t + 1}, loss = {loss.data[0]:.4f}, acc = {acc:.2f}%')
 
 
 def predict(net, name, loader):
@@ -94,43 +77,38 @@ def predict(net, name, loader):
 
 
 def main(flag=True):
-    if flag:
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
-        torch.cuda.is_available()
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
+    torch.cuda.is_available()
 
-        train_datasets = TIN200Data('/data1')
-        val_datasets = TIN200Data('/data1', 'val')
+    train_loader = data.DataLoader(TIN200Data('/data1'), 256, True, num_workers=4)
+    val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 256, num_workers=4)
 
-        train_loader = data.DataLoader(
-            train_datasets, batch_size=256, shuffle=True, num_workers=4)
-        val_loader = data.DataLoader(
-            val_datasets, batch_size=256, num_workers=4)
+    net = InceptionV1().cuda()
+    net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
+    cudnn.benchmark = True
 
-        net = VGG().cuda()
-        net = torch.nn.DataParallel(
-            net, device_ids=range(torch.cuda.device_count()))
-        cudnn.benchmark = True
+    optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=5)
+    loss_fn = nn.CrossEntropyLoss()
 
-        optimizer = optim.SGD(net.parameters(), lr=0.1,
-                              momentum=0.9, weight_decay=5e-4)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='max', verbose=True, patience=5)
-        loss_fn = nn.CrossEntropyLoss()
-
-        train(net, loss_fn, optimizer, scheduler, num_epochs=300,
-              loader=train_loader, val_loader=val_loader)
-    else:
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-        torch.cuda.is_available()
-        test_datasets = TIN200Data('/data1', 'test')
-        test_loader = data.DataLoader(
-            test_datasets, batch_size=256, num_workers=4)
-        print('Load best net...')
-        net = restore('best.pkl')
-        print('Done. Predicting...')
-        predict(net, 'first', test_loader)
-        print('Done.')
-
+    best_acc = 0
+    num_epochs = 300
+    for epoch in range(num_epochs):
+        train(net, loss_fn, optimizer, num_epochs, epoch+1, train_loader)
+        acc = check_accuracy(net, val_loader)
+        scheduler.step(acc, epoch=epoch + 1)
+        print(f'last best_acc:{best_acc:.2f}%')
+        if acc > best_acc:
+            best_acc = acc
+            print(fore.LIGHT_BLUE +
+                  f'Got current best_acc:{best_acc:.2f}%, Saving...' + style.RESET)
+            save(net, 'InceptionV1')
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f'current lr:{current_lr}')
+        # adjust_learning_rate(optimizer, decay_rate=0.9)
+    print('-------------------------------')
+    print(f'{best_acc:.2f}%')
+    print('-------------------------------')
 
 if __name__ == '__main__':
     main()
