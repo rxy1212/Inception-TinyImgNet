@@ -11,8 +11,9 @@ import torch.nn as nn
 import torch
 
 class InceptionV1(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=200, sub_out=True):
         super(InceptionV1, self).__init__()
+        self.sub_out = sub_out
         self.bottom_layer = nn.Sequential(
             nn.Conv2d(3, 128, 7, padding=3),
             nn.BatchNorm2d(128),
@@ -22,16 +23,28 @@ class InceptionV1(nn.Module):
             nn.ReLU(),
             nn.Conv2d(256, 256, 3, padding=1),
             nn.BatchNorm2d(256),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2)
+            nn.ReLU()
         )
+        self.pool1 = nn.MaxPool2d(2, 2)
         self.inception1 = Inception(256, 128, 128, 128, 128)
         self.inception2 = Inception(512, 128, 128, 128, 128)
+        self.pool2 = nn.MaxPool2d(2, 2)
         self.inception3 = Inception(512, 160, 160, 160, 160)
-        self.inception4 = Inception(640, 64, 256, 256, 64, )
-
+        if sub_out:
+            self.inception_aux0 = InceptionAux(640, num_classes)
+        self.inception4 = Inception(640, 64, 256, 256, 64)
+        self.inception5 = Inception(640, 128, 256, 256, 128)
+        self.inception6 = Inception(768, 128, 256, 256, 128)
+        if sub_out:
+            self.inception_aux1 = InceptionAux(768, num_classes)
+        self.inception7 = Inception(768, 128, 256, 512, 128)
+        self.pool3 = nn.MaxPool2d(2, 2)
+        self.inception8 = Inception(1024, 128, 256, 512, 128)
+        self.inception9 = Inception(1024, 128, 256, 512, 128)
+        self.pool4 = nn.AvgPool2d(8)
+        self.fcn = nn.Linear(1024, num_classes)
     def forward(self, x):
-        pass
+        x = 
 
 
 class Inception(nn.Module):
