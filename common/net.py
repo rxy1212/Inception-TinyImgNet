@@ -7,8 +7,9 @@
 @remark: {when} {email} {do what}
 '''
 
-import torch.nn as nn
 import torch
+import torch.nn as nn
+from torch.autograd import Variable
 
 class InceptionV1(nn.Module):
     def __init__(self, num_classes=200, sub_out=True):
@@ -43,8 +44,31 @@ class InceptionV1(nn.Module):
         self.inception9 = Inception(1024, 128, 256, 512, 128)
         self.pool4 = nn.AvgPool2d(8)
         self.fcn = nn.Linear(1024, num_classes)
+
     def forward(self, x):
-        x = 
+        x = self.bottom_layer(x)
+        x = self.pool1(x)
+        x = self.inception1(x)
+        x = self.inception2(x)
+        x = self.pool2(x)
+        x = self.inception3(x)
+        if self.sub_out and self.training:
+            sub_out0 = self.inception_aux0(x)
+        x = self.inception4(x)
+        x = self.inception5(x)
+        x = self.inception6(x)
+        if self.sub_out and self.training:
+            sub_out1 = self.inception_aux1(x)
+        x = self.inception7(x)
+        x = self.pool3(x)
+        x = self.inception8(x)
+        x = self.inception9(x)
+        x = self.pool4(x)
+        x = x.view(x.size(0), -1)
+        x = self.fcn(x)
+        if self.sub_out and self.training:
+            return x, sub_out0, sub_out1
+        return x
 
 
 class Inception(nn.Module):
@@ -74,19 +98,6 @@ class Inception(nn.Module):
             nn.BatchNorm2d(convR11_out),
             nn.ReLU()
         )
-        if not sub_out:
-            self.sub_classifier_1 = nn.Sequential(
-                nn.AvgPool2d(5, 3, 2),
-                nn.Conv2d(in_channels, sub_out, 1),
-                nn.BatchNorm2d(sub_out),
-                nn.ReLU()
-            )
-            self.sub_classifier_2 = nn.Sequential(
-                nn.Linear(sub_out, sub_out // 2),
-                nn.ReLU(),
-                nn.Dropout(),
-                nn.Linear(sub_out // 2, 200)
-            )
 
     def forward(self, x):
         x_L11 = self.convL11(x)
@@ -101,8 +112,8 @@ class InceptionAux(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(InceptionAux, self).__init__()
         self.pool = nn.AvgPool2d(5, 3, 2)
-        self.conv0 = BasicConv2d(in_channels, 128, kernel_size=1)
-        self.conv1 = BasicConv2d(128, 640, kernel_size=6)
+        self.conv0 = BasicConv2d(in_channels, 128, 1)
+        self.conv1 = BasicConv2d(128, 640, 6, False)
         self.conv1.stddev = 0.01
         self.fc = nn.Linear(640, num_classes)
         self.fc.stddev = 0.001
@@ -123,13 +134,23 @@ class InceptionAux(nn.Module):
 
 class BasicConv2d(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size, ** kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, bn=True, ** kwargs):
         super(BasicConv2d, self).__init__()
-        self.step = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs),
-            nn.BatchNorm2d(out_channels, eps=0.001),
-            nn.ReLU(True)
-        )
+        if not bn:
+            self.step = nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs)
+        else:
+            self.step = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs),
+                nn.BatchNorm2d(out_channels, eps=0.001),
+                nn.ReLU(True)
+            )
 
     def forward(self, x):
         return self.step(x)
+
+
+# net = InceptionV1(sub_out=False)
+# print(net)
+# x = torch.randn(1, 3, 64, 64)
+# y = net(Variable(x))
+# print(y.size())
