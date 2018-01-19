@@ -16,29 +16,29 @@ class GoogLeNet(nn.Module):
         super(GoogLeNet, self).__init__()
         self.sub_out = sub_out
         self.bottom_layer = nn.Sequential(
-            BasicConv2d(3, 128, 3, padding=1),
+            BasicConv2d(3, 64, 3, padding=1),
             nn.MaxPool2d(3, 1, 1),
-            BasicConv2d(128, 256, 1),
-            BasicConv2d(256, 256, 3, padding=1)
+            BasicConv2d(64, 128, 1),
+            BasicConv2d(128, 128, 3, padding=1)
         )
         self.pool1 = nn.MaxPool2d(4, 2, 1)
-        self.inception1 = InceptionV3(256, 128, 128, 128, 128)
-        self.inception2 = InceptionV3(512, 128, 128, 128, 128)
+        self.inception1 = InceptionV3(128, 64, 64, 64, 64)
+        self.inception2 = InceptionV3(256, 64, 64, 64, 64)
         self.pool2 = nn.MaxPool2d(4, 2, 1)
-        self.inception3 = InceptionV3(512, 160, 160, 160, 160)
+        self.inception3 = InceptionV3(256, 64, 128, 128, 64)
         if sub_out:
-            self.inception_aux0 = InceptionAux(640, num_classes)
-        self.inception4 = InceptionV3(640, 64, 256, 256, 64)
-        self.inception5 = InceptionV3(640, 128, 256, 256, 128)
-        self.inception6 = InceptionV3(768, 128, 256, 256, 128)
+            self.inception_aux0 = InceptionAux(384, num_classes)
+        self.inception4 = InceptionV3(384, 64, 128, 256, 64)
+        self.inception5 = InceptionV3(512, 64, 128, 256, 64)
+        self.inception6 = InceptionV3(512, 64, 128, 256, 64)
         if sub_out:
-            self.inception_aux1 = InceptionAux(768, num_classes)
-        self.inception7 = InceptionV3(768, 128, 256, 512, 128)
+            self.inception_aux1 = InceptionAux(512, num_classes)
+        self.inception7 = InceptionV3(512, 64, 192, 512, 64)
         self.pool3 = nn.MaxPool2d(4, 2, 1)
-        self.inception8 = InceptionV3(1024, 128, 256, 512, 128)
-        self.inception9 = InceptionV3(1024, 128, 256, 512, 128)
+        self.inception8 = InceptionV3(832, 64, 192, 512, 64)
+        self.inception9 = InceptionV3(832, 64, 192, 512, 64)
         self.pool4 = nn.AvgPool2d(8)
-        self.fcn = nn.Linear(1024, num_classes, bias=False)
+        self.fcn = nn.Linear(832, num_classes, bias=False)
 
     def forward(self, x):
         x = self.bottom_layer(x)
