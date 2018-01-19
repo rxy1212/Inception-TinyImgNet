@@ -76,11 +76,11 @@ def predict(net, name, loader):
 
 
 def main(flag=True):
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
     torch.cuda.is_available()
 
-    train_loader = data.DataLoader(TIN200Data('/data1'), 64, True, num_workers=4)
-    val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 64, num_workers=4)
+    train_loader = data.DataLoader(TIN200Data('/data1'), 128, True, num_workers=4)
+    val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 128, num_workers=4)
 
     net = InceptionV1().cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
