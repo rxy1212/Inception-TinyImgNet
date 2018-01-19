@@ -79,8 +79,8 @@ def main(flag=True):
     os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
     torch.cuda.is_available()
 
-    train_loader = data.DataLoader(TIN200Data('/data1'), 128, True, num_workers=4)
-    val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 128, num_workers=4)
+    train_loader = data.DataLoader(TIN200Data('/data1'), 512, True, num_workers=4)
+    val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 512, num_workers=4)
 
     net = GoogLeNet().cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
