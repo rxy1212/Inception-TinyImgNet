@@ -17,7 +17,7 @@ from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 from common.net import GoogLeNet
 from common.dataset import TIN200Data
-from common.utils import *
+from common.utils import save
 
 
 def train(net, loss_fn, optimizer, num_epochs, epoch, loader=None):
@@ -44,6 +44,29 @@ def train(net, loss_fn, optimizer, num_epochs, epoch, loader=None):
         if (t + 1) % 50 == 0:
             print(
                 f't = {t + 1}, loss = {loss.data[0]:.4f}, acc = {acc:.2f}%')
+
+
+def check_accuracy(net, loader):
+    '''
+    Check the accuracy of val data
+    '''
+    print('Checking accuracy on validation set')
+
+    num_correct = 0
+    num_samples = 0
+    # Put the net in test mode (the opposite of net.train(), essentially)
+    net.eval()
+    for x, y in loader:
+        # reference https://pytorch-cn.readthedocs.io/zh/latest/notes/autograd/
+        x_var = Variable(x, volatile=True)
+
+        scores = net(x_var.cuda())
+        _, preds = scores.data.cpu().max(1)
+        num_correct += (preds == y).sum()
+        num_samples += preds.size(0)
+    acc = 100.0 * float(num_correct) / num_samples
+    print(f'Got {num_correct} / {num_samples} correct ({acc:.2f}%)')
+    return acc
 
 
 def predict(net, name, loader):
@@ -75,7 +98,7 @@ def predict(net, name, loader):
                 print(f'process:{i+1}/{len(classid)}')
 
 
-def main(flag=True):
+def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "0,3"
     torch.cuda.is_available()
 
@@ -87,15 +110,17 @@ def main(flag=True):
     cudnn.benchmark = True
 
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=5)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=2)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)
     loss_fn = nn.CrossEntropyLoss()
 
     best_acc = 0
-    num_epochs = 300
+    num_epochs = 50
     for epoch in range(num_epochs):
+        scheduler.step(epoch=epoch + 1)
         train(net, loss_fn, optimizer, num_epochs, epoch+1, train_loader)
         acc = check_accuracy(net, val_loader)
-        scheduler.step(acc, epoch=epoch + 1)
+        # scheduler.step(acc, epoch=epoch+1)
         print(f'last best_acc:{best_acc:.2f}%')
         if acc > best_acc:
             best_acc = acc
@@ -107,6 +132,7 @@ def main(flag=True):
     print('-------------------------------')
     print(f'{best_acc:.2f}%')
     print('-------------------------------')
+
 
 if __name__ == '__main__':
     main()
