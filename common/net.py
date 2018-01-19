@@ -21,10 +21,10 @@ class InceptionV1(nn.Module):
             BasicConv2d(128, 256, 1),
             BasicConv2d(256, 256, 3, padding=1)
         )
-        self.pool1 = nn.MaxPool2d(2, 2)
+        self.pool1 = nn.MaxPool2d(4, 2, 1)
         self.inception1 = Inception(256, 128, 128, 128, 128)
         self.inception2 = Inception(512, 128, 128, 128, 128)
-        self.pool2 = nn.MaxPool2d(2, 2)
+        self.pool2 = nn.MaxPool2d(4, 2, 1)
         self.inception3 = Inception(512, 160, 160, 160, 160)
         if sub_out:
             self.inception_aux0 = InceptionAux(640, num_classes)
@@ -34,7 +34,7 @@ class InceptionV1(nn.Module):
         if sub_out:
             self.inception_aux1 = InceptionAux(768, num_classes)
         self.inception7 = Inception(768, 128, 256, 512, 128)
-        self.pool3 = nn.MaxPool2d(2, 2)
+        self.pool3 = nn.MaxPool2d(4, 2, 1)
         self.inception8 = Inception(1024, 128, 256, 512, 128)
         self.inception9 = Inception(1024, 128, 256, 512, 128)
         self.pool4 = nn.AvgPool2d(8)
