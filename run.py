@@ -110,17 +110,17 @@ def main():
     cudnn.benchmark = True
 
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=2)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=3)
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)
     loss_fn = nn.CrossEntropyLoss()
 
     best_acc = 0
-    num_epochs = 50
+    num_epochs = 100
     for epoch in range(num_epochs):
-        scheduler.step(epoch=epoch + 1)
+        # scheduler.step(epoch=epoch + 1)
         train(net, loss_fn, optimizer, num_epochs, epoch+1, train_loader)
         acc = check_accuracy(net, val_loader)
-        # scheduler.step(acc, epoch=epoch+1)
+        scheduler.step(acc, epoch=epoch+1)
         print(f'last best_acc:{best_acc:.2f}%')
         if acc > best_acc:
             best_acc = acc
