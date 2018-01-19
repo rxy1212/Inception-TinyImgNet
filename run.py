@@ -101,10 +101,9 @@ def main(flag=True):
             best_acc = acc
             print(fore.LIGHT_BLUE +
                   f'Got current best_acc:{best_acc:.2f}%, Saving...' + style.RESET)
-            save(net, 'InceptionV1')
+            save(net, 'InceptionV2')
         current_lr = optimizer.param_groups[0]['lr']
         print(f'current lr:{current_lr}')
-        # adjust_learning_rate(optimizer, decay_rate=0.9)
     print('-------------------------------')
     print(f'{best_acc:.2f}%')
     print('-------------------------------')

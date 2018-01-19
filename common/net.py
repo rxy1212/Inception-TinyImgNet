@@ -16,15 +16,10 @@ class InceptionV1(nn.Module):
         super(InceptionV1, self).__init__()
         self.sub_out = sub_out
         self.bottom_layer = nn.Sequential(
-            nn.Conv2d(3, 128, 7, padding=3),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
+            BasicConv2d(3, 128, 7, padding=3),
             nn.MaxPool2d(3, 1, 1),
-            nn.Conv2d(128, 256, 1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU()
+            BasicConv2d(128, 256, 1),
+            BasicConv2d(256, 256, 3, padding=1)
         )
         self.pool1 = nn.MaxPool2d(2, 2)
         self.inception1 = Inception(256, 128, 128, 128, 128)
@@ -43,7 +38,7 @@ class InceptionV1(nn.Module):
         self.inception8 = Inception(1024, 128, 256, 512, 128)
         self.inception9 = Inception(1024, 128, 256, 512, 128)
         self.pool4 = nn.AvgPool2d(8)
-        self.fcn = nn.Linear(1024, num_classes)
+        self.fcn = nn.Linear(1024, num_classes, bias=False)
 
     def forward(self, x):
         x = self.bottom_layer(x)
@@ -112,7 +107,7 @@ class InceptionAux(nn.Module):
         super(InceptionAux, self).__init__()
         self.pool = nn.AvgPool2d(5, 3, 2)
         self.conv0 = BasicConv2d(in_channels, 128, 1)
-        self.conv1 = BasicConv2d(128, 640, 6, False)
+        self.conv1 = BasicConv2d(128, 640, 6)
         self.conv1.stddev = 0.01
         self.fc = nn.Linear(640, num_classes)
         self.fc.stddev = 0.001
@@ -133,22 +128,19 @@ class InceptionAux(nn.Module):
 
 class BasicConv2d(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size, bn=True, ** kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, ** kwargs):
         super(BasicConv2d, self).__init__()
-        if not bn:
-            self.step = nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs)
-        else:
-            self.step = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs),
-                nn.BatchNorm2d(out_channels, eps=0.001),
-                nn.ReLU(True)
-            )
+        self.step = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, bias=False, **kwargs),
+            nn.BatchNorm2d(out_channels, eps=0.001),
+            nn.ReLU(True)
+        )
 
     def forward(self, x):
         return self.step(x)
 
 
-# net = InceptionV1(sub_out=False)
+# net = InceptionV1()
 # print(net)
 # x = torch.randn(1, 3, 64, 64)
 # y = net(Variable(x))
