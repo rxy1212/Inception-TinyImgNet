@@ -185,8 +185,8 @@ class Inception1nn1(nn.Module):
     def forward(self, x):
         return self.step(x)
 
-net = GoogLeNet()
-print(net)
-x = torch.randn(1, 3, 64, 64)
-y = net(Variable(x))
-print(y.size())
+# net = GoogLeNet()
+# print(net)
+# x = torch.randn(1, 3, 64, 64)
+# y = net(Variable(x))
+# print(y.size())
