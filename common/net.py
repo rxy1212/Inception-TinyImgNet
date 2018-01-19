@@ -11,32 +11,32 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-class InceptionV1(nn.Module):
+class GoogLeNet(nn.Module):
     def __init__(self, num_classes=200, sub_out=False):
-        super(InceptionV1, self).__init__()
+        super(GoogLeNet, self).__init__()
         self.sub_out = sub_out
         self.bottom_layer = nn.Sequential(
-            BasicConv2d(3, 128, 7, padding=3),
+            BasicConv2d(3, 128, 3, padding=1),
             nn.MaxPool2d(3, 1, 1),
             BasicConv2d(128, 256, 1),
             BasicConv2d(256, 256, 3, padding=1)
         )
         self.pool1 = nn.MaxPool2d(4, 2, 1)
-        self.inception1 = Inception(256, 128, 128, 128, 128)
-        self.inception2 = Inception(512, 128, 128, 128, 128)
+        self.inception1 = InceptionV3(256, 128, 128, 128, 128)
+        self.inception2 = InceptionV3(512, 128, 128, 128, 128)
         self.pool2 = nn.MaxPool2d(4, 2, 1)
-        self.inception3 = Inception(512, 160, 160, 160, 160)
+        self.inception3 = InceptionV3(512, 160, 160, 160, 160)
         if sub_out:
             self.inception_aux0 = InceptionAux(640, num_classes)
-        self.inception4 = Inception(640, 64, 256, 256, 64)
-        self.inception5 = Inception(640, 128, 256, 256, 128)
-        self.inception6 = Inception(768, 128, 256, 256, 128)
+        self.inception4 = InceptionV3(640, 64, 256, 256, 64)
+        self.inception5 = InceptionV3(640, 128, 256, 256, 128)
+        self.inception6 = InceptionV3(768, 128, 256, 256, 128)
         if sub_out:
             self.inception_aux1 = InceptionAux(768, num_classes)
-        self.inception7 = Inception(768, 128, 256, 512, 128)
+        self.inception7 = InceptionV3(768, 128, 256, 512, 128)
         self.pool3 = nn.MaxPool2d(4, 2, 1)
-        self.inception8 = Inception(1024, 128, 256, 512, 128)
-        self.inception9 = Inception(1024, 128, 256, 512, 128)
+        self.inception8 = InceptionV3(1024, 128, 256, 512, 128)
+        self.inception9 = InceptionV3(1024, 128, 256, 512, 128)
         self.pool4 = nn.AvgPool2d(8)
         self.fcn = nn.Linear(1024, num_classes, bias=False)
 
@@ -66,9 +66,9 @@ class InceptionV1(nn.Module):
         return x
 
 
-class Inception(nn.Module):
+class InceptionV1(nn.Module):
     def __init__(self, in_channels, convL11_out, conv33_out, conv55_out, convR11_out):
-        super(Inception, self).__init__()
+        super(InceptionV1, self).__init__()
         self.convL11 = nn.Conv2d(in_channels, convL11_out, 1)
         self.conv33 = nn.Sequential(
             nn.Conv2d(in_channels, in_channels // 2, 1),
@@ -85,6 +85,35 @@ class Inception(nn.Module):
             nn.Conv2d(in_channels // 2, conv55_out, 5, padding=2),
             nn.BatchNorm2d(conv55_out),
             nn.ReLU()
+        )
+        self.convR11 = nn.Sequential(
+            nn.MaxPool2d(3, 1, 1),
+            nn.Conv2d(in_channels, convR11_out, 1),
+            nn.BatchNorm2d(convR11_out),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        x_L11 = self.convL11(x)
+        x_33 = self.conv33(x)
+        x_55 = self.conv55(x)
+        x_R11 = self.convR11(x)
+        outputs = (x_L11, x_33, x_55, x_R11)
+        return torch.cat(outputs, 1)
+
+
+class InceptionV3(nn.Module):
+    def __init__(self, in_channels, convL11_out, conv33_out, conv55_out, convR11_out):
+        super(InceptionV3, self).__init__()
+        self.convL11 = nn.Conv2d(in_channels, convL11_out, 1)
+        self.conv33 = nn.Sequential(
+            BasicConv2d(in_channels, in_channels // 2, 1),
+            Inception1nn1(in_channels // 2, conv33_out)
+        )
+        self.conv55 = nn.Sequential(
+            BasicConv2d(in_channels, in_channels // 2, 1),
+            Inception1nn1(in_channels // 2, conv55_out),
+            Inception1nn1(conv55_out, conv55_out)
         )
         self.convR11 = nn.Sequential(
             nn.MaxPool2d(3, 1, 1),
@@ -126,6 +155,7 @@ class InceptionAux(nn.Module):
         # 200
         return x
 
+
 class BasicConv2d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size, ** kwargs):
@@ -140,8 +170,23 @@ class BasicConv2d(nn.Module):
         return self.step(x)
 
 
-# net = InceptionV1()
-# print(net)
-# x = torch.randn(1, 3, 64, 64)
-# y = net(Variable(x))
-# print(y.size())
+class Inception1nn1(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(Inception1nn1, self).__init__()
+        self.step = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, (1, 3), (1, 1), (1, 0)),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(True),
+            nn.Conv2d(out_channels, out_channels, (3, 1), (1, 1), (0, 1)),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(True)
+        )
+
+    def forward(self, x):
+        return self.step(x)
+
+net = GoogLeNet()
+print(net)
+x = torch.randn(1, 3, 64, 64)
+y = net(Variable(x))
+print(y.size())

@@ -15,7 +15,7 @@ import torch.optim as optim
 import torch.utils.data as data
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
-from common.net import InceptionV1
+from common.net import GoogLeNet
 from common.dataset import TIN200Data
 from common.utils import *
 
@@ -82,7 +82,7 @@ def main(flag=True):
     train_loader = data.DataLoader(TIN200Data('/data1'), 128, True, num_workers=4)
     val_loader = data.DataLoader(TIN200Data('/data1', 'val'), 128, num_workers=4)
 
-    net = InceptionV1().cuda()
+    net = GoogLeNet().cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
     cudnn.benchmark = True
 
@@ -101,7 +101,7 @@ def main(flag=True):
             best_acc = acc
             print(fore.LIGHT_BLUE +
                   f'Got current best_acc:{best_acc:.2f}%, Saving...' + style.RESET)
-            save(net, 'InceptionV2')
+            save(net, 'GoogLeNet')
         current_lr = optimizer.param_groups[0]['lr']
         print(f'current lr:{current_lr}')
     print('-------------------------------')
