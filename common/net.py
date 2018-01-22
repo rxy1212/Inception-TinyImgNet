@@ -25,10 +25,10 @@ class GoogLeNet(nn.Module):
         self.inception1 = InceptionV3(128, 64, 64, 64, 64)
         self.inception2 = InceptionV3(256, 64, 64, 64, 64)
         self.pool2 = nn.MaxPool2d(4, 2, 1)
-        self.inception3 = InceptionV3(256, 64, 128, 128, 64)
+        self.inception3 = InceptionV3(256, 64, 64, 64, 64)
         if sub_out:
-            self.inception_aux0 = InceptionAux(384, num_classes)
-        self.inception4 = InceptionV3(384, 64, 128, 256, 64)
+            self.inception_aux0 = InceptionAux(256, num_classes)
+        self.inception4 = InceptionV3(256, 64, 128, 256, 64)
         self.inception5 = InceptionV3(512, 64, 128, 256, 64)
         self.inception6 = InceptionV3(512, 64, 128, 256, 64)
         if sub_out:
@@ -37,8 +37,11 @@ class GoogLeNet(nn.Module):
         self.pool3 = nn.MaxPool2d(4, 2, 1)
         self.inception8 = InceptionV3(832, 64, 192, 512, 64)
         self.inception9 = InceptionV3(832, 64, 192, 512, 64)
-        self.pool4 = nn.AvgPool2d(8)
-        self.fcn = nn.Linear(832, num_classes, bias=False)
+        self.pool4 = nn.AvgPool2d(4, 4)
+        self.fcn = nn.Sequential(
+            nn.Linear(832 * 2 * 2, 1000),
+            nn.Linear(1000, num_classes, bias=False)
+        )
 
     def forward(self, x):
         x = self.bottom_layer(x)
