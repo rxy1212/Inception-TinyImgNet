@@ -157,7 +157,6 @@ class InceptionAux(nn.Module):
 
 
 class BasicConv2d(nn.Module):
-
     def __init__(self, in_channels, out_channels, kernel_size, ** kwargs):
         super(BasicConv2d, self).__init__()
         self.step = nn.Sequential(
