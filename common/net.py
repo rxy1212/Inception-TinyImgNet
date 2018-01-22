@@ -40,6 +40,8 @@ class GoogLeNet(nn.Module):
         self.pool4 = nn.AvgPool2d(4, 4)
         self.fcn = nn.Sequential(
             nn.Linear(832 * 2 * 2, 1000),
+            nn.ReLU(True),
+            nn.Dropout(),
             nn.Linear(1000, num_classes, bias=False)
         )
 
