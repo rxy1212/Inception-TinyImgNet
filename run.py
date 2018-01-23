@@ -70,6 +70,7 @@ def check_accuracy(net, loader):
 
 
 def predict(net, name, loader):
+    from os.path import join as pjoin
     print('Predicting on test set')
     classid = []
     test_img_name = []
